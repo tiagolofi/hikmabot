@@ -7,4 +7,5 @@ public interface TelegramConfigs {
     String botToken();
     String botName();
     String botUsername();
+    int hourSessionDuration();
 }
