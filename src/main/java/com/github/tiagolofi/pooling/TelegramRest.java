@@ -1,5 +1,6 @@
 package com.github.tiagolofi.pooling;
 
+import java.util.List;
 import java.util.Set;
 
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -11,6 +12,7 @@ import com.github.tiagolofi.secutiry.TokenJwt;
 import com.github.tiagolofi.types.Result;
 
 import io.smallrye.mutiny.tuples.Tuple4;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -44,6 +46,8 @@ public class TelegramRest {
             String token = tokenJwt.geraToken(String.valueOf(dados.getItem1()), dados.getItem2(), dados.getItem4(), Set.of("user"));
             log.info("Token Gerado: " + token);
 
+            // TODO: salvar token no banco de dados
+
             telegramClient.send(
                 telegramConfigs.botToken(),
                 "sendMessage",
@@ -56,6 +60,26 @@ public class TelegramRest {
         }
 
         return Response.ok().build();
+    }
+
+    @POST
+    @Path("queue")
+    @RolesAllowed("user")
+    public Response processQueue() {
+        try {
+            Result result = telegramClient.updates(telegramConfigs.botToken(),"getUpdates", 100, 1);
+
+            List<String> commands = result.getResult()
+                .stream()
+                .map(update -> update.getMessage().getText())
+                .filter(text -> text != null && text.startsWith("/"))
+                .toList();
+
+            return Response.ok(commands).build();
+        } catch (Exception e) {
+            log.error("Erro ao processar a fila de atualizações do Telegram: " + e.getMessage(), e);
+            return Response.serverError().build();
+        }
     }
 
     private Tuple4<Long, String, String, Long> parseResult(Result result) {
