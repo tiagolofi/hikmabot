@@ -42,7 +42,7 @@ public class TelegramRest {
         String text = dados.getItem3();
         if (text != null && "/auth".equals(text)) {
             String token = tokenJwt.geraToken(String.valueOf(dados.getItem1()), dados.getItem2(), dados.getItem4(), Set.of("user"));
-            log.info("Generated JWT: " + token);
+            log.info("Token Gerado: " + token);
 
             telegramClient.send(
                 telegramConfigs.botToken(),
