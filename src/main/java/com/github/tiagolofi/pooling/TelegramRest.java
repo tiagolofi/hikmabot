@@ -10,6 +10,7 @@ import com.github.tiagolofi.client.TelegramClient;
 import com.github.tiagolofi.client.TelegramConfigs;
 import com.github.tiagolofi.secutiry.TokenJwt;
 import com.github.tiagolofi.types.Result;
+import com.github.tiagolofi.types.Update;
 
 import io.smallrye.mutiny.tuples.Tuple4;
 import jakarta.annotation.security.RolesAllowed;
@@ -37,7 +38,7 @@ public class TelegramRest {
     @POST
     @Path("/auth")
     public Response auth() {
-        Result result = telegramClient.updates(telegramConfigs.botToken(),"getUpdates", 1, -1);
+        Result result = telegramClient.updates(telegramConfigs.botToken(), 1, -1);
 
         Tuple4<Long, String, String, Long> dados = parseResult(result);
 
@@ -50,7 +51,6 @@ public class TelegramRest {
 
             telegramClient.send(
                 telegramConfigs.botToken(),
-                "sendMessage",
                 dados.getItem1(),
                 String.format(
                     "Seu dispositivo está autenticado %s!%n%nObs: Esta sessão tem a duração de %d hora(s).", 
@@ -67,26 +67,29 @@ public class TelegramRest {
     @RolesAllowed("user")
     public Response processQueue() {
         try {
-            Result result = telegramClient.updates(telegramConfigs.botToken(),"getUpdates", 100, 1);
+            Result result = telegramClient.updates(telegramConfigs.botToken(), 100, 1);
 
             List<String> commands = result.getResult()
                 .stream()
-                .map(update -> update.getMessage().getText())
-                .filter(text -> text != null && text.startsWith("/"))
+                .map(Update::description)
                 .toList();
 
             return Response.ok(commands).build();
         } catch (Exception e) {
-            log.error("Erro ao processar a fila de atualizações do Telegram: " + e.getMessage(), e);
+            log.error("Erro ao processar a fila de atualizações do Telegram: " + e.getMessage());
             return Response.serverError().build();
         }
     }
 
     private Tuple4<Long, String, String, Long> parseResult(Result result) {
-        Long userId = result.getResult().getFirst().getMessage().getChat().getId();
-        String name = result.getResult().getFirst().getMessage().getChat().getFirstName();
-        Long date = result.getResult().getFirst().getMessage().getDate();
-        String text = result.getResult().getFirst().getMessage().getText();
-        return Tuple4.of(userId, name, text, date);
+        try {
+            Long userId = result.getResult().getFirst().getMessage().getChat().getId();
+            String name = result.getResult().getFirst().getMessage().getChat().getFirstName();
+            Long date = result.getResult().getFirst().getMessage().getDate();
+            String text = result.getResult().getFirst().getMessage().getText();
+            return Tuple4.of(userId, name, text, date);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao processar o resultado da atualização do Telegram: " + e.getMessage());
+        }
     }
 }

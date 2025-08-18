@@ -2,7 +2,7 @@ package com.github.tiagolofi.types;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class Update {
+public class Update implements Command {
     @JsonProperty("update_id")
     private Long updateId;
     private Message message;
@@ -21,6 +21,26 @@ public class Update {
 
     public void setMessage(Message message) {
         this.message = message;
+    }
+
+    @Override
+    public String command() {
+        return message.getText().startsWith("/") ? message.getText().split(" ")[0] : null;
+    }
+
+    @Override
+    public String description() {
+        try {
+            return message.getText().startsWith("/") ? message.getText().split(" ")[1] : null;
+        } catch (IndexOutOfBoundsException e) {
+            return null;
+        }
+        
+    }
+
+    @Override
+    public void run() {
+        // Implement the command logic here
     }
 
     @Override
